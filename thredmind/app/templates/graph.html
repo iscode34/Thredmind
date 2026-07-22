@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Graph — ThredMind{% endblock %}
+
+{% block head %}
+<style>
+.gpage{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.gtop{flex-shrink:0;height:3.25rem;display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;border-bottom:1px solid var(--border);background:var(--bg)}
+.gbar{flex-shrink:0;padding:.5rem 1.25rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg)}
+.gbody{flex:1;display:flex;min-height:0;position:relative}
+#cy{flex:1;height:100%;background:var(--bg)}
+.chip{padding:.25rem .7rem;border-radius:9999px;font-size:.7rem;font-weight:500;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;background:transparent;transition:.15s;white-space:nowrap}
+.chip:hover,.chip.active{background:var(--accent-bg);color:var(--text);border-color:var(--border-hover)}
+.stat{font-size:.68rem;font-weight:500;padding:.15rem .55rem;border-radius:9999px}
+#rpanel{position:absolute;right:0;top:0;bottom:0;width:280px;background:var(--bg-card);border-left:1px solid var(--border);display:none;flex-direction:column;z-index:20;overflow:hidden}
+#rpanel.open{display:flex}
+#rpbody{flex:1;overflow-y:auto;padding:1rem;font-size:.78rem;color:var(--text-muted)}
+#rpfoot{padding:.75rem 1rem;border-top:1px solid var(--border)}
+.hint{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);font-size:.7rem;color:var(--text-dim);pointer-events:none;opacity:.7}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gpage">
+  <div class="gtop">
+    <div style="display:flex;align-items:center;gap:.6rem">
+      <span style="font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Knowledge Graph</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span class="stat" style="background:rgba(239,68,68,.1);color:#ef4444">{{stats.documents}} docs</span>
+      <span class="stat" style="background:rgba(139,92,246,.1);color:#8b5cf6">{{stats.entities}} concepts</span>
+      <span class="stat" style="background:rgba(16,185,129,.1);color:#10b981">{{stats.cross_document_links}} doc-links</span>
+    </div>
+  </div>
+
+  <div class="gbar">
+    <span style="font-size:.68rem;color:var(--text-dim)">Mode:</span>
+    <button class="chip active" id="btn-overview" onclick="showOverview()">📄 Documents</button>
+    <button class="chip" id="btn-full" onclick="showFull()">🕸 Full Graph</button>
+    <div style="flex:1"></div>
+    <input id="srch" placeholder="Search…" oninput="doSearch(this.value)"
+      style="background:var(--bg-input);border:1px solid var(--border);border-radius:.6rem;padding:.28rem .65rem;font-size:.72rem;color:var(--text);outline:none;width:9rem"/>
+    <button class="chip" id="rbtn" onclick="rebuild()">↻ Rebuild</button>
+    <button class="chip" onclick="cy&&cy.animate({fit:{padding:50},duration:500})">⤢ Fit</button>
+  </div>
+
+  <div class="gbody">
+    <div id="cy"></div>
+    <div id="rpanel">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+        <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim)">Details</span>
+        <button onclick="closeRP()" style="cursor:pointer;background:none;border:none;color:var(--text-muted);font-size:1rem">✕</button>
+      </div>
+      <div id="rpbody"></div>
+      <div id="rpfoot"></div>
+    </div>
+    <div class="hint" id="hint">Click a document to explore its connections</div>
+  </div>
+</div>
+
+<div id="tip" style="position:fixed;display:none;pointer-events:none;z-index:9999;background:#111827;border:1px solid rgba(255,255,255,.12);border-radius:.6rem;padding:.5rem .8rem;font-size:.72rem;color:#e5e7eb;max-width:200px;box-shadow:0 8px 20px rgba(0,0,0,.5)">
+  <div id="tip-t" style="font-weight:600;margin-bottom:.1rem"></div>
+  <div id="tip-s" style="font-size:.63rem;opacity:.6"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script>
+let cy=null, rawDocs=[], rawEnts=[], rawEdges=[], mode='overview', expanded=null;
+const DC={pdf:'#ef4444',docx:'#3b82f6',txt:'#10b981',md:'#10b981',url:'#38bdf8',pptx:'#f97316',ai_generated:'#8b5cf6'};
+const EC={topic:'#10b981',person:'#f59e0b',organization:'#8b5cf6',date:'#f59e0b',keyword:'#ec4899',category:'#06b6d4'};
+
+const BASE_STYLE=[
+  {selector:'node[ntype="doc"]',style:{
+    shape:'roundrectangle','background-color':'data(color)','border-color':'data(color)','border-width':2,'border-opacity':.4,
+    width:60,height:60,label:'data(label)',color:'#fff','font-size':9.5,'font-weight':600,
+    'font-family':'Inter,sans-serif','text-valign':'bottom','text-halign':'center','text-margin-y':5,
+    'text-outline-color':'#000','text-outline-width':2,'text-outline-opacity':.8,'text-wrap':'wrap','text-max-width':100,
+    'shadow-blur':10,'shadow-color':'data(color)','shadow-opacity':.35,'shadow-offset-x':0,'shadow-offset-y':0,
+    'transition-property':'width,height,opacity','transition-duration':'0.25s',
+  }},
+  {selector:'node[ntype="ent"]',style:{
+    shape:'ellipse','background-color':'data(color)',width:14,height:14,
+    label:'data(label)',color:'#d1d5db','font-size':7,'font-family':'Inter,sans-serif',
+    'text-valign':'bottom','text-halign':'center','text-margin-y':2,
+    'text-outline-color':'#000','text-outline-width':1,'text-outline-opacity':.9,'text-wrap':'wrap','text-max-width':80,
+    'transition-property':'opacity','transition-duration':'0.25s',
+  }},
+  {selector:'edge',style:{
+    'curve-style':'bezier',width:'mapData(strength,0,1,0.7,3.5)','line-color':'data(ec)',opacity:.2,
+    'transition-property':'opacity','transition-duration':'0.2s',
+  }},
+  {selector:'edge[rel="shares_concepts"]',style:{'line-color':'#8b5cf6','line-style':'dashed',opacity:.35}},
+  {selector:'edge[rel="semantically_similar"]',style:{'line-color':'#06b6d4','line-style':'dotted',opacity:.3}},
+  {selector:'.dim',style:{opacity:.06,'text-opacity':.05}},
+  {selector:'.hi',style:{opacity:1}},
+  {selector:'edge.hi',style:{opacity:.8}},
+  {selector:'node.selected',style:{'border-width':3,'border-opacity':1,'shadow-opacity':.7,'shadow-blur':20}},
+];
+
+async function load(){
+  showSpinner(true);
+  try{
+    const r=await fetch('/graph/data');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    rawDocs=(d.nodes||[]).filter(n=>n.data.type==='document');
+    rawEnts=(d.nodes||[]).filter(n=>n.data.type==='entity');
+    rawEdges=d.edges||[];
+    // tag node types for style selectors
+    rawDocs.forEach(n=>{n.data.ntype='doc'; n.data.label=n.data.label||'Doc';});
+    rawEnts.forEach(n=>{n.data.ntype='ent';});
+    rawEdges.forEach(e=>{e.data.rel=e.data.relationship||''; e.data.ec=e.data.color||'rgba(255,255,255,.15)';});
+    if(!rawDocs.length){showEmpty();return;}
+    showOverview();
+  }catch(e){showErr(e.message);}
+}
+
+// ── OVERVIEW: only document nodes in a clean circle/concentric layout ──
+function showOverview(){
+  mode='overview'; expanded=null;
+  document.getElementById('btn-overview').classList.add('active');
+  document.getElementById('btn-full').classList.remove('active');
+  document.getElementById('hint').style.opacity='1';
+  closeRP();
+  if(cy){cy.destroy();cy=null;}
+
+  const docEdges=rawEdges.filter(e=>{
+    const src=rawDocs.find(n=>n.data.id===e.data.source);
+    const tgt=rawDocs.find(n=>n.data.id===e.data.target);
+    return src&&tgt;
+  });
+
+  showSpinner(false);
+  cy=cytoscape({
+    container:document.getElementById('cy'),
+    elements:{nodes:rawDocs,edges:docEdges},
+    style:BASE_STYLE,
+    layout:{
+      name: rawDocs.length<=10 ? 'circle' : 'concentric',
+      padding:80, animate:true, animationDuration:700,
+      concentric: n=>1, levelWidth:()=>1,
+      startAngle: Math.PI*3/2,
+    },
+    wheelSensitivity:.25,minZoom:.1,maxZoom:4,
+  });
+  attachHandlers();
+}
+
+// ── FULL: all nodes, force-directed ──
+function showFull(){
+  mode='full'; expanded=null;
+  document.getElementById('btn-full').classList.add('active');
+  document.getElementById('btn-overview').classList.remove('active');
+  document.getElementById('hint').style.opacity='0';
+  closeRP();
+  if(cy){cy.destroy();cy=null;}
+  showSpinner(false);
+  cy=cytoscape({
+    container:document.getElementById('cy'),
+    elements:{nodes:[...rawDocs,...rawEnts],edges:rawEdges},
+    style:BASE_STYLE,
+    layout:{
+      name:'cose',animate:true,animationDuration:900,
+      nodeRepulsion:n=>n.data('ntype')==='doc'?40000:6000,
+      idealEdgeLength:e=>e.data('rel')==='shares_concepts'?220:90,
+      edgeElasticity:.25,gravity:.08,numIter:2000,randomize:false,fit:true,padding:120,
+      coolingFactor:.92,initialTemp:150,minTemp:.3,
+    },
+    wheelSensitivity:.25,minZoom:.06,maxZoom:4,
+  });
+  attachHandlers();
+}
+
+// ── EXPAND: click a doc in overview → show its entities around it ──
+function expandDoc(node){
+  if(mode!=='overview') return;
+  const docId=node.data('id');
+  if(expanded===docId){collapseDoc();return;}
+  expanded=docId;
+
+  // remove any previously added entity nodes
+  cy.remove('node[ntype="ent"]');
+  cy.remove('edge[added="1"]');
+
+  // find entity nodes connected to this doc
+  const connEdges=rawEdges.filter(e=>e.data.source===docId||e.data.target===docId);
+  const entIds=new Set();
+  connEdges.forEach(e=>{
+    if(e.data.source===docId && e.data.target!==docId) entIds.add(e.data.target);
+    if(e.data.target===docId && e.data.source!==docId) entIds.add(e.data.source);
+  });
+  const entsToAdd=rawEnts.filter(n=>entIds.has(n.data.id));
+  const edgesToAdd=connEdges.filter(e=>{
+    const srcOk=rawDocs.find(d=>d.data.id===e.data.source)||entIds.has(e.data.source);
+    const tgtOk=rawDocs.find(d=>d.data.id===e.data.target)||entIds.has(e.data.target);
+    return srcOk&&tgtOk;
+  }).map(e=>({data:{...e.data,added:'1'}}));
+
+  if(!entsToAdd.length){openRP(node); return;}
+
+  // add with position near the doc node
+  const pos=node.position();
+  const withPos=entsToAdd.map((n,i)=>({
+    data:{...n.data,added:'1'},
+    position:{x:pos.x+Math.cos(i*Math.PI*2/entsToAdd.length)*120,
+               y:pos.y+Math.sin(i*Math.PI*2/entsToAdd.length)*120}
+  }));
+
+  cy.add([...withPos,...edgesToAdd]);
+
+  // dim everything else, highlight this subgraph
+  const subIds=new Set([docId,...entsToAdd.map(n=>n.data.id)]);
+  cy.nodes().forEach(n=>{ n.toggleClass('dim',!subIds.has(n.data('id'))); n.toggleClass('hi',subIds.has(n.data('id'))); });
+  cy.edges().addClass('dim'); edgesToAdd.forEach(e=>{cy.getElementById(e.data.id)?.removeClass('dim').addClass('hi');});
+  node.addClass('selected');
+  cy.animate({fit:{eles:cy.elements('.hi'),padding:80},duration:600,easing:'ease-in-out'});
+  openRP(node);
+}
+
+function collapseDoc(){
+  expanded=null;
+  cy.remove('node[added="1"]');
+  cy.remove('edge[added="1"]');
+  cy.nodes().removeClass('dim hi selected');
+  cy.edges().removeClass('dim hi');
+  cy.animate({fit:{padding:70},duration:500});
+  closeRP();
+}
+
+function attachHandlers(){
+  const tip=document.getElementById('tip');
+  cy.on('mouseover','node',evt=>{
+    const d=evt.target.data();
+    document.getElementById('tip-t').textContent=d.label;
+    document.getElementById('tip-s').textContent=d.ntype==='doc'?(d.subtype||d.type):(d.subtype+' concept');
+    tip.style.display='block';
+  });
+  cy.on('mousemove','node',evt=>{
+    tip.style.left=(evt.originalEvent.clientX+14)+'px';
+    tip.style.top=(evt.originalEvent.clientY-14)+'px';
+  });
+  cy.on('mouseout','node',()=>{tip.style.display='none';});
+  cy.on('tap','node',evt=>{
+    if(mode==='overview') expandDoc(evt.target);
+    else openRP(evt.target);
+  });
+  cy.on('tap',evt=>{if(evt.target===cy){if(mode==='overview')collapseDoc();else closeRP();}});
+}
+
+// ── Side panel ──
+function openRP(node){
+  const d=node.data();
+  const col=d.color||'#6b7280';
+  const conns=node.connectedEdges().connectedNodes().filter(n=>n.id()!==node.id()).toArray();
+  document.getElementById('rpbody').innerHTML=`
+    <div style="margin-bottom:.75rem">
+      <span style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.15rem .5rem;border-radius:.35rem;background:${col}22;color:${col}">${d.subtype||d.type}</span>
+    </div>
+    <div style="font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:.6rem;line-height:1.35">${d.label}</div>
+    ${d.summary?`<p style="font-size:.73rem;line-height:1.6;margin-bottom:.8rem">${d.summary.slice(0,200)}${d.summary.length>200?'…':''}</p>`:''}
+    ${conns.length?`<div style="font-size:.63rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:.4rem">${conns.length} connection${conns.length!==1?'s':''}</div>
+    <div style="display:flex;flex-direction:column;gap:.3rem">
+    ${conns.slice(0,8).map(n=>`<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem .5rem;border-radius:.45rem;background:var(--bg-input);font-size:.7rem;color:var(--text-muted)">
+      <span style="width:.45rem;height:.45rem;border-radius:50%;background:${n.data('color')};flex-shrink:0"></span>
+      <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${n.data('label')}</span>
+      <span style="font-size:.6rem;color:var(--text-dim)">${n.data('subtype')||n.data('ntype')}</span>
+    </div>`).join('')}
+    ${conns.length>8?`<div style="font-size:.63rem;color:var(--text-dim);text-align:center;padding:.3rem">+${conns.length-8} more</div>`:''}
+    </div>`:'<p style="font-size:.72rem;color:var(--text-dim)">No connections yet. Try rebuilding the graph.</p>'}
+  `;
+  document.getElementById('rpfoot').innerHTML=d.ntype==='doc'?`
+    <div style="display:flex;gap:.5rem">
+      <a href="/api/documents/${d.id}" style="flex:1;text-align:center;padding:.45rem;border-radius:.55rem;background:var(--accent);color:var(--accent-text);font-size:.72rem;font-weight:600;text-decoration:none">View</a>
+      <a href="/chat?doc_id=${d.id}" style="flex:1;text-align:center;padding:.45rem;border-radius:.55rem;background:var(--accent-bg);color:var(--text);font-size:.72rem;font-weight:500;text-decoration:none">Chat</a>
+    </div>`:'';
+  document.getElementById('rpanel').classList.add('open');
+}
+function closeRP(){document.getElementById('rpanel').classList.remove('open');}
+
+// ── Search ──
+function doSearch(q){
+  q=q.trim().toLowerCase();
+  if(!cy||!q) return;
+  const hits=cy.nodes().filter(n=>(n.data('label')||'').toLowerCase().includes(q));
+  if(hits.length){cy.animate({fit:{eles:hits,padding:80},duration:500});}
+}
+
+// ── Rebuild ──
+async function rebuild(){
+  const btn=document.getElementById('rbtn');
+  btn.textContent='↺ Rebuilding…';btn.disabled=true;
+  try{
+    const r=await fetch('/graph/rebuild',{method:'POST'});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||'Rebuild failed');
+    rawDocs=[];rawEnts=[];rawEdges=[];
+    await load();
+  }catch(e){alert('Rebuild error: '+e.message);}
+  btn.textContent='↻ Rebuild';btn.disabled=false;
+}
+
+// ── Helpers ──
+function showSpinner(show){
+  let ov=document.getElementById('ov');
+  if(!ov&&show){
+    ov=document.createElement('div');ov.id='ov';
+    ov.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;z-index:5;background:var(--bg)';
+    ov.innerHTML='<div style="width:2rem;height:2rem;border:2px solid rgba(139,92,246,.2);border-top-color:#8b5cf6;border-radius:50%;animation:spin 1s linear infinite"></div><p style="font-size:.8rem;color:var(--text-dim)">Loading…</p>';
+    document.getElementById('cy').appendChild(ov);
+  }
+  if(ov) ov.style.display=show?'flex':'none';
+}
+function showEmpty(){
+  showSpinner(false);
+  document.getElementById('cy').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;text-align:center">
+    <div style="font-size:2rem">🕸️</div>
+    <h3 style="font-size:.95rem;font-weight:700;color:var(--text)">No documents yet</h3>
+    <p style="font-size:.78rem;color:var(--text-dim);max-width:20rem">Upload documents then click ↻ Rebuild to generate the knowledge graph.</p>
+    <button onclick="rebuild()" class="chip" style="margin-top:.5rem">↻ Rebuild</button>
+  </div>`;
+}
+function showErr(msg){
+  showSpinner(false);
+  document.getElementById('cy').innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:.5rem">
+    <p style="font-size:.82rem;color:var(--error)">⚠ ${msg}</p>
+    <button onclick="load()" class="chip">Retry</button>
+  </div>`;
+}
+
+(function boot(){if(typeof cytoscape==='undefined'){setTimeout(boot,200);return;}load();})();
+setTimeout(()=>{if(typeof cytoscape==='undefined')showErr('Cytoscape.js CDN failed. Check internet.');},9000);
+</script>
+{% endblock %}

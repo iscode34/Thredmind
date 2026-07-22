@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Upload — ThredMind{% endblock %}
+{% block head %}
+<style>
+    .htmx-indicator { display: none; }
+    .htmx-indicator.htmx-request { display: flex; }
+</style>
+{% endblock %}
+{% block content %}
+        <header class="sticky top-0 z-30 bg-bg/80 backdrop-blur-md border-b border-border px-4 lg:px-8 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="openSidebar()" class="flex md:hidden w-8 h-8 items-center justify-center rounded-lg text-fg-dim hover:text-fg hover:bg-accent-bg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <h1 class="text-sm font-semibold text-fg-muted tracking-wide uppercase">Upload</h1>
+            </div>
+        </header>
+
+        <main class="p-4 lg:p-8 max-w-2xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-fg mb-1">Add Knowledge</h2>
+                <p class="text-fg-muted text-sm">Upload a document or import a URL to add to your knowledge base.</p>
+            </div>
+
+            <style>
+                .htmx-indicator { display: none; }
+                .htmx-indicator.htmx-request { display: flex; }
+            </style>
+
+            <div id="upload-spinner" class="htmx-indicator fixed inset-0 z-50 items-center justify-center bg-bg/60 backdrop-blur-sm">
+                <div class="bg-bg-card border border-border rounded-2xl p-8 flex flex-col items-center gap-4 shadow-xl animate-pop">
+                    <div class="w-10 h-10 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+                    <p class="text-sm text-fg-muted font-medium">Processing your document...</p>
+                    <p class="text-xs text-fg-dim">Extracting text, analyzing with AI, generating insights</p>
+                </div>
+            </div>
+
+            <div class="bg-bg-card border border-border rounded-2xl overflow-hidden mb-6">
+                <div class="px-5 py-4 border-b border-border">
+                    <h3 class="text-sm font-semibold text-fg flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        Upload Document
+                    </h3>
+                </div>
+                <div class="p-5">
+                    <form hx-encoding="multipart/form-data" hx-post="/api/documents/upload" hx-target="#upload-result" hx-swap="innerHTML" hx-indicator="#upload-spinner">
+                        <div class="border-2 border-dashed border-border rounded-xl p-8 text-center mb-4 hover:border-fg-muted/50 transition-colors cursor-pointer relative" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                            <input type="file" name="file" id="file-input" required accept=".pdf,.docx,.pptx,.txt,.md"
+                                class="hidden" onchange="document.getElementById('file-name').textContent = this.files[0]?.name || 'PDF, DOCX, PPTX, TXT, MD'">
+                            <div class="mb-3">
+                                <svg class="w-10 h-10 text-fg-dim mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                            </div>
+                            <p class="text-fg-muted text-sm font-medium mb-1">Click to browse or drag and drop</p>
+                            <p class="text-fg-dim text-xs" id="file-name">PDF, DOCX, PPTX, TXT, MD</p>
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-accent text-accent-text rounded-xl py-3 text-sm font-semibold hover:opacity-90 transition-opacity active:scale-[0.99]">
+                            Process Document
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="bg-bg-card border border-border rounded-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-border">
+                    <h3 class="text-sm font-semibold text-fg flex items-center gap-2">
+                        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                        Import from URL
+                    </h3>
+                </div>
+                <div class="p-5">
+                    <form hx-post="/api/documents/import-url" hx-target="#upload-result" hx-swap="innerHTML" hx-indicator="#upload-spinner">
+                        <div class="mb-4">
+                            <input type="url" name="url" required placeholder="https://example.com/article"
+                                class="w-full bg-bg-input border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-dim focus:outline-none focus:border-fg-muted transition-colors">
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-accent-bg text-fg rounded-xl py-3 text-sm font-semibold hover:bg-accent-bg/70 transition-colors active:scale-[0.99]">
+                            Import & Process
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="upload-result" class="mt-6"></div>
+        </main>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-fg-muted'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-fg-muted'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('border-fg-muted');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                document.getElementById('file-name').textContent = e.dataTransfer.files[0].name;
+            }
+        });
+    }
+</script>
+{% endblock %}

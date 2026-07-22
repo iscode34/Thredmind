@@ -1,0 +1,134 @@
+{
+  "E:\\Nusa Putra\\thredmind\\thredmind\\schema.sql": {
+    "mtime": 1783074919.233386,
+    "hash": "b92624a3b5ffe9b28f398460c5486824"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\config.py": {
+    "mtime": 1783074099.7772193,
+    "hash": "9ec6912024e0bae3e3f38e0b5b0d7410"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\dependencies.py": {
+    "mtime": 1783056061.008984,
+    "hash": "2aa88a2006c7bf9b848e21faaebfcdaa"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\main.py": {
+    "mtime": 1783087825.6922812,
+    "hash": "d73b970ec3e946db520c78cb99a8d4ea"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templating.py": {
+    "mtime": 1783055536.7485588,
+    "hash": "c9a73fcbb5a5bf081b28e4f04408bd59"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\__init__.py": {
+    "mtime": 1783055413.2010143,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\models\\document.py": {
+    "mtime": 1783057473.845808,
+    "hash": "41a940f599697258d744e049ae1c49f6"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\models\\user.py": {
+    "mtime": 1783055426.3302238,
+    "hash": "27cce580bfab0c1956af064886a1f5bf"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\models\\__init__.py": {
+    "mtime": 1783055425.1708443,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\routes\\auth.py": {
+    "mtime": 1783089097.2282264,
+    "hash": "a2eaefdd55e6e7fcf14f4873326b35a2"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\routes\\dashboard.py": {
+    "mtime": 1783089729.0898943,
+    "hash": "df2013e01fa85256a884e40645507332"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\routes\\documents.py": {
+    "mtime": 1783353044.4245207,
+    "hash": "f8a78fc54ed3cec91e96b27eee81f00b"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\routes\\__init__.py": {
+    "mtime": 1783055430.933321,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\ai_client.py": {
+    "mtime": 1783352291.382775,
+    "hash": "dc5a65a818bf49ce732417468275579e"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\ai_processor.py": {
+    "mtime": 1783074387.8475256,
+    "hash": "97f6ac94e732766244d1e925affa2335"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\db_client.py": {
+    "mtime": 1783086176.3461256,
+    "hash": "253b44def45fe7414d2e222fdc4f1ae3"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\document_parser.py": {
+    "mtime": 1783057456.513038,
+    "hash": "1675d662b9f1b13c3ca2d2c90345f145"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\embedding_service.py": {
+    "mtime": 1783057472.0181568,
+    "hash": "19100df5a5f71a403a8def70d4b9d687"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\web_scraper.py": {
+    "mtime": 1783057460.7636263,
+    "hash": "37b77a8d2f8114e2919b931337f0946b"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\services\\__init__.py": {
+    "mtime": 1783055416.4561648,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "E:\\Nusa Putra\\thredmind\\plan.md": {
+    "mtime": 1783056150.2049584,
+    "hash": "82d473c27d8024a101251ac7a9c66f7b"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\requirements.txt": {
+    "mtime": 1783055475.8664212,
+    "hash": "3d3e47f984c5c368acdf2d3f6a632ad6"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\base.html": {
+    "mtime": 1783089053.940395,
+    "hash": "d0d3b9103e5f20e5e0043c8467ea2c5c"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\documents.html": {
+    "mtime": 1783086293.4639132,
+    "hash": "a45ebed4b70bf0d0d029a95d28e3cfa6"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\document_detail.html": {
+    "mtime": 1783077430.3690531,
+    "hash": "17152a88efe45551069ba403bd77e367"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\index.html": {
+    "mtime": 1783091169.472867,
+    "hash": "bbee70061d6853ca64c5d9e30070653a"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\login.html": {
+    "mtime": 1783089596.591954,
+    "hash": "6a2338ff189caa5665f6f33c6d4da182"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\signup.html": {
+    "mtime": 1783089596.8077033,
+    "hash": "8e16c771c636277627ff15d620490e2d"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\study.html": {
+    "mtime": 1783083673.21273,
+    "hash": "05b0682729b2c238441358f8af723b41"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\study_library.html": {
+    "mtime": 1783087725.3808372,
+    "hash": "86b15776ebb6c63f2042564f8438dc72"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\upload.html": {
+    "mtime": 1783074759.5962682,
+    "hash": "c51ca7b5f397bfa9c5295d3f2fc74426"
+  },
+  "E:\\Nusa Putra\\thredmind\\thredmind\\app\\templates\\partials\\sidebar.html": {
+    "mtime": 1783089728.8632972,
+    "hash": "244fd03f75a421e3bdc9938ea0296ce6"
+  },
+  "E:\\Nusa Putra\\thredmind\\1783052412.pdf": {
+    "mtime": 1783052440.2066104,
+    "hash": "230ce0bd95df458d6054378b0157ce1a"
+  }
+}
