@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — ThredMind{% endblock %}
+{% block head %}
+<style>
+    @keyframes fadeSlideUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseGlow {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.7; }
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-12px) rotate(3deg); }
+    }
+    .auth-animate { animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .auth-animate-delay { animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards; opacity: 0; }
+    .glow-orb { animation: pulseGlow 4s ease-in-out infinite; }
+    .float-shape { animation: float 8s ease-in-out infinite; }
+    .float-shape-delay { animation: float 9s ease-in-out 2s infinite; }
+    .input-focus-ring:focus { box-shadow: 0 0 0 3px rgba(250,250,250,0.08); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    <!-- Left: Branding Panel -->
+    <div class="hidden lg:flex lg:w-[45%] xl:w-[42%] relative bg-bg-raised overflow-hidden items-center justify-center">
+        <div class="absolute inset-0 opacity-[0.03]">
+            <svg width="100%" height="100%"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/></svg>
+        </div>
+        <div class="glow-orb absolute top-1/3 -right-20 w-72 h-72 rounded-full bg-violet-500/10 blur-[80px]"></div>
+        <div class="glow-orb absolute bottom-1/4 -left-16 w-56 h-56 rounded-full bg-emerald-500/8 blur-[70px]" style="animation-delay: 2s;"></div>
+        <div class="absolute top-[20%] left-[18%] float-shape">
+            <div class="w-14 h-14 rotate-45 rounded-xl border border-border/50 bg-bg-card/30 backdrop-blur-sm"></div>
+        </div>
+        <div class="absolute bottom-[20%] right-[22%] float-shape-delay">
+            <div class="w-10 h-10 rounded-lg border border-border/40 bg-bg-card/20 backdrop-blur-sm"></div>
+        </div>
+        <div class="relative z-10 text-center px-12 max-w-md">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-emerald-500/20 border border-violet-500/10 flex items-center justify-center mx-auto mb-8">
+                <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight text-fg mb-4">Start Building<br/>Your Knowledge Base</h1>
+            <p class="text-fg-dim text-base leading-relaxed">
+                Create an account to upload documents, generate AI study guides, and connect ideas across your entire library.
+            </p>
+            <div class="mt-10 flex items-center justify-center gap-2 text-xs text-fg-dim/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-violet-500/40"></span>
+                <span>Free to start</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/40 mx-2"></span>
+                <span>No credit card</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Form Panel -->
+    <div class="flex-1 flex items-center justify-center px-6 py-12 bg-bg">
+        <div class="w-full max-w-sm">
+            <div class="lg:hidden text-center mb-8">
+                <a href="/" class="inline-block text-2xl font-extrabold tracking-tight text-fg">ThredMind</a>
+                <p class="text-fg-dim text-sm mt-1">Knowledge Workspace</p>
+            </div>
+
+            <div id="signup-form-area" class="auth-animate">
+                <h2 class="text-2xl font-bold text-fg mb-1">Create your account</h2>
+                <p class="text-fg-dim text-sm mb-8">Start your AI-powered learning journey</p>
+
+            <form hx-post="/auth/signup" hx-target="#signup-form-area" hx-swap="outerHTML" class="space-y-5">
+                <div>
+                    <label class="block text-xs text-fg-dim font-medium mb-2">Email address</label>
+                    <input type="email" name="email" required autocomplete="email" placeholder="you@example.com"
+                        class="input-focus-ring w-full bg-bg-input border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-dim focus:outline-none focus:border-fg-muted/50 transition-all duration-200">
+                </div>
+                <div>
+                    <label class="block text-xs text-fg-dim font-medium mb-2">Password</label>
+                    <input type="password" name="password" required autocomplete="new-password" minlength="6" placeholder="Minimum 6 characters"
+                        class="input-focus-ring w-full bg-bg-input border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-dim focus:outline-none focus:border-fg-muted/50 transition-all duration-200">
+                </div>
+                <div id="error"></div>
+                <button type="submit"
+                    class="w-full bg-fg text-bg rounded-xl py-3 text-sm font-semibold hover:opacity-90 transition-all duration-200 active:scale-[0.98]">
+                    Create account
+                </button>
+            </form>
+
+            <div class="auth-animate-delay mt-6 pt-6 border-t border-border">
+                <p class="text-center text-fg-dim text-sm">
+                    Already have an account? <a href="/auth/login" class="text-fg font-medium hover:opacity-80 transition-opacity">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

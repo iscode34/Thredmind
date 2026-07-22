@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ThredMind{% endblock %}
+
+{% block head %}
+<style>
+    .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+    .stat-card { transition: border-color 0.2s ease, transform 0.2s ease; }
+    .stat-card:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+    .animate-in-delay-1 { animation-delay: 0.05s; opacity: 0; }
+    .animate-in-delay-2 { animation-delay: 0.1s; opacity: 0; }
+    .animate-in-delay-3 { animation-delay: 0.15s; opacity: 0; }
+    .animate-in-delay-4 { animation-delay: 0.2s; opacity: 0; }
+    .source-bar { transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+</style>
+{% endblock %}
+
+{% block content %}
+        <header class="sticky top-0 z-30 bg-bg/80 backdrop-blur-md border-b border-border px-4 lg:px-8 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="openSidebar()"
+                    class="flex md:hidden w-8 h-8 items-center justify-center rounded-lg text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <h1 class="text-sm font-semibold text-fg-muted tracking-wide uppercase">Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                {% if streak > 0 %}
+                <span class="text-xs text-amber-400 font-medium flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                    {{ streak }} day streak
+                </span>
+                {% endif %}
+                <span class="text-xs text-fg-dim hidden sm:inline">{{ user.email }}</span>
+            </div>
+        </header>
+
+        <main class="p-4 lg:p-8 max-w-7xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-fg mb-1">Welcome back</h2>
+                <p class="text-fg-muted text-sm">Your knowledge, threaded together by AI.</p>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+                <div class="stat-card animate-in animate-in-delay-1 bg-bg-card border border-border rounded-2xl p-4 lg:p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </div>
+                        <span class="text-fg-dim text-[10px] font-semibold uppercase tracking-widest">Docs</span>
+                    </div>
+                    <p class="text-3xl font-bold text-fg">{{ doc_count }}</p>
+                    <p class="text-xs text-fg-dim mt-1">{% if ai_count > 0 %}{{ ai_count }} AI-generated{% else %}in your library{% endif %}</p>
+                </div>
+                <div class="stat-card animate-in animate-in-delay-2 bg-bg-card border border-border rounded-2xl p-4 lg:p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        </div>
+                        <span class="text-fg-dim text-[10px] font-semibold uppercase tracking-widest">Studied</span>
+                    </div>
+                    <p class="text-3xl font-bold text-fg">{{ studied_count }}</p>
+                    <p class="text-xs text-fg-dim mt-1">{% if mastered_count > 0 %}{{ mastered_count }} mastered{% else %}{{ total_sessions }} sessions{% endif %}</p>
+                </div>
+                <div class="stat-card animate-in animate-in-delay-3 bg-bg-card border border-border rounded-2xl p-4 lg:p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                        </div>
+                        <span class="text-fg-dim text-[10px] font-semibold uppercase tracking-widest">Streak</span>
+                    </div>
+                    <p class="text-3xl font-bold text-fg">{{ streak }}</p>
+                    <p class="text-xs text-fg-dim mt-1">{% if streak > 0 %}days in a row{% else %}start studying{% endif %}</p>
+                </div>
+                <div class="stat-card animate-in animate-in-delay-4 bg-bg-card border border-border rounded-2xl p-4 lg:p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        </div>
+                        <span class="text-fg-dim text-[10px] font-semibold uppercase tracking-widest">Connections</span>
+                    </div>
+                    <p class="text-3xl font-bold text-fg">{{ total_entities }}</p>
+                    <p class="text-xs text-fg-dim mt-1">entities found</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+                <!-- Left Column -->
+                <div class="xl:col-span-2 space-y-4 lg:space-y-6">
+
+                    <!-- Continue Studying -->
+                    {% if due_docs %}
+                    <div class="bg-bg-card border border-border rounded-2xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-fg flex items-center gap-2">
+                                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Continue Studying
+                            </h3>
+                            <a href="/study" class="text-xs text-fg-dim hover:text-fg transition-colors">View all</a>
+                        </div>
+                        <div class="divide-y divide-border">
+                            {% for dd in due_docs %}
+                            <a href="/api/documents/{{ dd.id }}/study-page" class="flex items-center gap-3 px-5 py-3 hover:bg-accent-bg/30 transition-colors group">
+                                <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center
+                                    {% if dd.mastery == 'mastered' %}bg-emerald-500/10 text-emerald-400
+                                    {% elif dd.mastery == 'reviewing' %}bg-sky-500/10 text-sky-400
+                                    {% else %}bg-amber-500/10 text-amber-400{% endif %}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-fg truncate group-hover:text-fg transition-colors">{{ dd.title }}</p>
+                                    <p class="text-xs text-fg-dim">
+                                        <span class="{% if dd.mastery == 'mastered' %}text-emerald-400{% elif dd.mastery == 'reviewing' %}text-sky-400{% else %}text-amber-400{% endif %} font-medium">{{ dd.mastery|capitalize if dd.mastery else 'New' }}</span>
+                                        {% if dd.is_due %}<span class="text-amber-400 ml-2">• Due for review</span>{% endif %}
+                                    </p>
+                                </div>
+                                <svg class="w-4 h-4 text-fg-dim group-hover:text-fg transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Recent Documents -->
+                    <div class="bg-bg-card border border-border rounded-2xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-fg">Recent Documents</h3>
+                            <a href="/api/documents" class="text-xs text-fg-dim hover:text-fg transition-colors">{{ doc_count }} total</a>
+                        </div>
+                        {% if recent_docs %}
+                        <div class="divide-y divide-border">
+                            {% for doc in recent_docs %}
+                            <a href="/api/documents/{{ doc.id }}" class="flex items-center gap-3 px-5 py-3 hover:bg-accent-bg/30 transition-colors group">
+                                <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center
+                                    {% if doc.source_type == 'pdf' %}bg-red-500/10 text-red-400
+                                    {% elif doc.source_type == 'docx' %}bg-blue-500/10 text-blue-400
+                                    {% elif doc.source_type == 'url' %}bg-sky-500/10 text-sky-400
+                                    {% elif doc.source_type == 'ai_generated' %}bg-violet-500/10 text-violet-400
+                                    {% elif doc.source_type == 'txt' or doc.source_type == 'md' %}bg-emerald-500/10 text-emerald-400
+                                    {% else %}bg-accent-bg text-fg-dim{% endif %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-fg truncate">{{ doc.title }}</p>
+                                    <p class="text-xs text-fg-dim">{{ doc.created_at }}</p>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="p-10 flex flex-col items-center justify-center text-center">
+                            <div class="w-14 h-14 rounded-2xl bg-accent-bg flex items-center justify-center mb-4">
+                                <svg class="w-6 h-6 text-fg-dim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                            </div>
+                            <p class="text-fg-dim font-medium mb-1">Your knowledge library is empty</p>
+                            <p class="text-fg-dim/60 text-sm max-w-xs">Upload a document or import a URL to start building your knowledge base.</p>
+                            <div class="flex gap-3 mt-6">
+                                <a href="/api/documents/upload" class="px-4 py-2 rounded-xl bg-accent text-accent-text text-sm font-medium hover:opacity-90 transition-opacity">Upload Document</a>
+                                <a href="/api/documents/upload" class="px-4 py-2 rounded-xl bg-accent-bg text-fg-muted text-sm font-medium hover:text-fg transition-colors">Import URL</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-4 lg:space-y-6">
+
+                    <!-- Source Type Distribution -->
+                    {% if source_dist %}
+                    <div class="bg-bg-card border border-border rounded-2xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-border">
+                            <h3 class="text-sm font-semibold text-fg">Document Types</h3>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            {% set max_count = source_dist[0].count if source_dist else 1 %}
+                            {% for s in source_dist %}
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs text-fg-muted font-medium uppercase">{{ s.type }}</span>
+                                    <span class="text-xs text-fg-dim">{{ s.count }}</span>
+                                </div>
+                                <div class="w-full bg-bg-input rounded-full h-1.5 overflow-hidden">
+                                    <div class="source-bar h-full rounded-full
+                                        {% if s.type == 'pdf' %}bg-red-400
+                                        {% elif s.type == 'docx' %}bg-blue-400
+                                        {% elif s.type == 'url' %}bg-sky-400
+                                        {% elif s.type == 'txt' %}bg-emerald-400
+                                        {% else %}bg-fg-dim{% endif %}"
+                                        style="width: {{ (s.count / max_count * 100)|int }}%"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% if ai_count > 0 %}
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs text-violet-400 font-medium uppercase">AI Generated</span>
+                                    <span class="text-xs text-fg-dim">{{ ai_count }}</span>
+                                </div>
+                                <div class="w-full bg-bg-input rounded-full h-1.5 overflow-hidden">
+                                    <div class="source-bar h-full rounded-full bg-violet-400" style="width: {{ (ai_count / (max_count + ai_count) * 100)|int }}%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Category Distribution -->
+                    {% if categories and categories|selectattr('count', 'gt', 0)|list %}
+                    <div class="bg-bg-card border border-border rounded-2xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-border">
+                            <h3 class="text-sm font-semibold text-fg">Categories</h3>
+                        </div>
+                        <div class="p-5 space-y-2">
+                            {% for cat in categories %}
+                            {% if cat.count > 0 %}
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }}"></span>
+                                    <span class="text-sm text-fg-muted">{{ cat.name }}</span>
+                                </div>
+                                <span class="text-xs text-fg-dim font-medium">{{ cat.count }}</span>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quick Actions -->
+                    <div class="bg-bg-card border border-border rounded-2xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-border">
+                            <h3 class="text-sm font-semibold text-fg">Quick Actions</h3>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <a href="/api/documents/upload" class="flex items-center gap-3 p-3 rounded-xl hover:bg-accent-bg transition-colors group">
+                                <div class="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-fg">Upload Document</p>
+                                    <p class="text-xs text-fg-dim">PDF, DOCX, TXT, MD</p>
+                                </div>
+                            </a>
+                            <a href="/study" class="flex items-center gap-3 p-3 rounded-xl hover:bg-accent-bg transition-colors group">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-fg">Study Library</p>
+                                    <p class="text-xs text-fg-dim">{{ studied_count }} documents studied</p>
+                                </div>
+                            </a>
+                            <a href="/api/documents" class="flex items-center gap-3 p-3 rounded-xl hover:bg-accent-bg transition-colors group">
+                                <div class="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-fg">All Documents</p>
+                                    <p class="text-xs text-fg-dim">{{ doc_count }} documents</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+{% endblock %}

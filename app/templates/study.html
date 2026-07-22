@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Study: {{ doc.title }} — ThredMind{% endblock %}
+{% block head %}
+<style>
+    .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+    .lesson-progress { transition: height 0.3s ease; }
+</style>
+{% endblock %}
+{% block content %}
+        <header class="sticky top-0 z-30 bg-bg/80 backdrop-blur-md border-b border-border px-4 lg:px-8 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="openSidebar()" class="flex md:hidden w-8 h-8 items-center justify-center rounded-lg text-fg-dim hover:text-fg hover:bg-accent-bg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <h1 class="text-sm font-semibold text-fg-muted tracking-wide uppercase">Study Mode</h1>
+            </div>
+            <a href="/api/documents/{{ doc.id }}" class="text-xs text-fg-dim hover:text-fg transition-colors">Back to Document</a>
+        </header>
+
+        <main class="p-4 lg:p-8 max-w-5xl mx-auto">
+            <div class="mb-8">
+                <div class="flex items-center gap-2 text-xs text-fg-dim mb-2">
+                    <span class="uppercase font-medium">{{ doc.source_type }}</span>
+                    <span>&middot;</span>
+                    <span>{{ doc.word_count }} words</span>
+                    <span>&middot;</span>
+                    <span>{{ reading_time }} min read</span>
+                </div>
+                <h2 class="text-2xl font-bold text-fg mb-1">{{ doc.title }}</h2>
+                <p class="text-fg-muted text-sm">AI-powered interactive learning experience</p>
+            </div>
+
+            <div id="study-content" class="space-y-6" hx-post="/api/documents/{{ doc.id }}/study" hx-trigger="load" hx-swap="innerHTML">
+                <div class="flex items-center justify-center p-12">
+                    <div class="w-10 h-10 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin"></div>
+                </div>
+            </div>
+
+            <!-- Record study session in database -->
+            <div hx-post="/api/documents/{{ doc.id }}/record-study" hx-trigger="load" hx-swap="none" class="hidden"></div>
+        </main>
+{% endblock %}

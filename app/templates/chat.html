@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Chat — ThredMind{% endblock %}
+
+{% block head %}
+<style>
+    .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+    .chat-message { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-track { background: transparent; }
+    #chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .search-panel { transition: transform 0.3s ease, opacity 0.3s ease; }
+    .search-panel.hidden-panel { transform: translateX(100%); opacity: 0; pointer-events: none; }
+    .chat-sidebar-mobile { transform: translateX(-100%); transition: transform 0.25s ease; }
+    .chat-sidebar-mobile.open { transform: translateX(0); }
+    .chat-sidebar-backdrop { display: none; }
+    .chat-sidebar-backdrop.active { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.4); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="sticky top-0 z-30 bg-bg/80 backdrop-blur-md border-b border-border px-4 lg:px-8 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <button onclick="openSidebar()" class="flex md:hidden w-8 h-8 items-center justify-center rounded-lg text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <button onclick="toggleMobileChats()" class="flex lg:hidden w-8 h-8 items-center justify-center rounded-lg text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        </button>
+        <h1 class="text-sm font-semibold text-fg-muted tracking-wide uppercase">Chat</h1>
+    </div>
+    <div class="flex items-center gap-2">
+        <button onclick="toggleSearch()" class="px-3 py-1.5 rounded-lg text-xs font-medium text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Search
+        </button>
+        <button onclick="newChat()" class="px-3 py-1.5 rounded-lg text-xs font-medium text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+            New
+        </button>
+    </div>
+</header>
+
+<div class="flex h-[calc(100vh-3.5rem)]">
+    <!-- Session Sidebar (desktop) -->
+    <div class="hidden lg:flex lg:w-56 xl:w-64 flex-shrink-0 border-r border-border bg-bg-raised/50 flex-col">
+        <div class="p-4 border-b border-border">
+            <button onclick="newChat()" class="w-full px-4 py-2.5 rounded-xl bg-accent-bg text-fg text-sm font-medium hover:bg-accent-bg/70 transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                New Chat
+            </button>
+        </div>
+        <div id="sessions-list-desktop" class="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {% for s in sessions %}
+            {% set pinned = s.get('is_pinned', False) %}
+            <div class="group/session flex items-center gap-1">
+                <button onclick="loadSession('{{ s.id }}')" class="flex-1 text-left px-3 py-2 rounded-xl hover:bg-accent-bg transition-colors text-sm text-fg-muted hover:text-fg truncate">
+                    {% if pinned %}<span class="text-amber-400 mr-1 text-xs">&#x2605;</span>{% endif %}{{ s.title[:45] }}
+                </button>
+                <div class="relative opacity-0 group-hover/session:opacity-100 transition-opacity">
+                    <button onclick="toggleSessionMenu(event, '{{ s.id }}')" class="w-6 h-6 rounded-lg flex items-center justify-center text-fg-dim hover:text-fg hover:bg-accent-bg transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                    </button>
+                    <div id="menu-{{ s.id }}" class="hidden absolute right-0 top-7 z-50 bg-bg-card border border-border rounded-xl shadow-2xl py-1 min-w-[130px]">
+                        <button onclick="pinSession('{{ s.id }}')" class="w-full text-left px-3 py-2 text-xs text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                            {{ 'Unpin' if pinned else 'Pin' }}
+                        </button>
+                        <button onclick="deleteSession('{{ s.id }}')" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not sessions %}
+            <p class="text-xs text-fg-dim px-3 py-2">No conversations yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Session Sidebar (mobile slide-over) -->
+    <div class="chat-sidebar-backdrop" id="chat-backdrop" onclick="closeMobileChats()"></div>
+    <div id="chat-sidebar-mobile" class="chat-sidebar-mobile fixed left-0 top-14 bottom-0 w-72 z-50 bg-bg-raised border-r border-border flex flex-col shadow-2xl lg:hidden">
+        <div class="p-4 border-b border-border flex items-center justify-between">
+            <span class="text-sm font-semibold text-fg">Chats</span>
+            <button onclick="closeMobileChats()" class="w-7 h-7 rounded-lg flex items-center justify-center text-fg-dim hover:text-fg hover:bg-accent-bg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-3">
+            <button onclick="newChat(); closeMobileChats()" class="w-full px-4 py-2.5 rounded-xl bg-accent-bg text-fg text-sm font-medium hover:bg-accent-bg/70 transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                New Chat
+            </button>
+        </div>
+        <div id="sessions-list" class="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
+            {% for s in sessions %}
+            {% set pinned = s.get('is_pinned', False) %}
+            <div class="group/session flex items-center gap-1">
+                <button onclick="loadSession('{{ s.id }}'); closeMobileChats()" class="flex-1 text-left px-3 py-2 rounded-xl hover:bg-accent-bg transition-colors text-sm text-fg-muted hover:text-fg truncate">
+                    {% if pinned %}<span class="text-amber-400 mr-1 text-xs">&#x2605;</span>{% endif %}{{ s.title[:45] }}
+                </button>
+                <div class="relative opacity-0 group-hover/session:opacity-100 transition-opacity">
+                    <button onclick="toggleSessionMenu(event, 'm-{{ s.id }}')" class="w-6 h-6 rounded-lg flex items-center justify-center text-fg-dim hover:text-fg hover:bg-accent-bg transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                    </button>
+                    <div id="menu-m-{{ s.id }}" class="hidden absolute right-0 top-7 z-50 bg-bg-card border border-border rounded-xl shadow-2xl py-1 min-w-[130px]">
+                        <button onclick="pinSession('{{ s.id }}')" class="w-full text-left px-3 py-2 text-xs text-fg-muted hover:text-fg hover:bg-accent-bg transition-colors flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                            {{ 'Unpin' if pinned else 'Pin' }}
+                        </button>
+                        <button onclick="deleteSession('{{ s.id }}')" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not sessions %}
+            <p class="text-xs text-fg-dim px-3 py-2">No conversations yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 lg:p-6">
+            <div class="flex flex-col items-center justify-center h-full text-center pt-20">
+                <div class="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-fg mb-2">ThredMind Chat</h3>
+                <p class="text-fg-dim text-sm max-w-sm">Ask questions about your documents. I'll search your knowledge base and use AI to answer.</p>
+                <div class="flex flex-wrap gap-2 mt-6 justify-center max-w-md">
+                    <button onclick="askSuggestion('Summarize my most recent document')" class="px-3 py-1.5 rounded-lg border border-border text-xs text-fg-muted hover:text-fg hover:border-fg-muted/30 transition-colors">Summarize recent docs</button>
+                    <button onclick="askSuggestion('What are the key concepts in my knowledge base?')" class="px-3 py-1.5 rounded-lg border border-border text-xs text-fg-muted hover:text-fg hover:border-fg-muted/30 transition-colors">Key concepts</button>
+                    <button onclick="askSuggestion('Explain a topic from my documents')" class="px-3 py-1.5 rounded-lg border border-border text-xs text-fg-muted hover:text-fg hover:border-fg-muted/30 transition-colors">Explain a topic</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Panel (hidden by default) -->
+        <div id="search-panel" class="search-panel hidden-panel absolute right-0 top-14 w-80 lg:w-96 bg-bg-card border border-border rounded-bl-2xl shadow-2xl z-40 max-h-[70vh] overflow-hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-fg">Search Documents</h3>
+                <button onclick="toggleSearch()" class="text-fg-dim hover:text-fg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-3">
+                <input type="text" id="search-input" placeholder="Search your documents..." 
+                    class="w-full bg-bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-fg placeholder-fg-dim focus:outline-none focus:border-fg-muted/50 transition-all"
+                    hx-post="/chat/search" hx-trigger="keyup changed delay:400ms" hx-target="#search-results" hx-swap="innerHTML"
+                    hx-indicator="#search-spinner" name="query">
+            </div>
+            <div id="search-results" class="flex-1 overflow-y-auto px-3 pb-3">
+                <div class="text-fg-dim text-sm p-4 text-center">Type to search your documents</div>
+            </div>
+            <div id="search-spinner" class="htmx-indicator flex justify-center py-3">
+                <div class="w-5 h-5 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin"></div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="border-t border-border p-3 lg:p-4 bg-bg/80 backdrop-blur-md">
+            <form id="chat-form" hx-post="/chat/message" hx-target="#chat-messages" hx-swap="beforeend"
+                hx-indicator="#chat-indicator" hx-on::after-request="this.reset(); document.getElementById('chat-input').focus()" class="max-w-3xl mx-auto">
+                <input type="hidden" id="chat-session-id" name="session_id" value="">
+                <div class="flex items-end gap-2">
+                    <textarea id="chat-input" name="message" rows="1" placeholder="Ask about your documents..." 
+                        class="flex-1 bg-bg-input border border-border rounded-2xl px-4 py-3 text-sm text-fg placeholder-fg-dim focus:outline-none focus:border-fg-muted/50 transition-all resize-none max-h-32"
+                        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();document.getElementById('chat-form').requestSubmit()}"></textarea>
+                    <button type="submit" id="send-btn"
+                        class="w-10 h-10 rounded-xl bg-fg text-bg flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    </button>
+                </div>
+            </form>
+            <div id="chat-indicator" class="htmx-indicator flex items-center gap-2 px-4 py-2 text-xs text-fg-dim max-w-3xl mx-auto">
+                <div class="w-3 h-3 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin"></div>
+                Searching your knowledge base...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleSearch() {
+        var panel = document.getElementById('search-panel');
+        panel.classList.toggle('hidden-panel');
+        if (!panel.classList.contains('hidden-panel')) {
+            document.getElementById('search-input').focus();
+        }
+    }
+    
+    function newChat() {
+        var messages = document.getElementById('chat-messages');
+        messages.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-center pt-20"><div class="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center mb-4"><svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div><h3 class="text-lg font-bold text-fg mb-2">ThredMind Chat</h3><p class="text-fg-dim text-sm max-w-sm">Ask questions about your documents. I\'ll search your knowledge base and use AI to answer.</p></div>';
+        document.getElementById('chat-session-id').value = '';
+        htmx.ajax('GET', '/chat/sessions-sidebar', '#sessions-list');
+        htmx.ajax('GET', '/chat/sessions-sidebar', '#sessions-list-desktop');
+    }
+    
+    function loadSession(sid) {
+        document.getElementById('chat-session-id').value = sid;
+        htmx.ajax('GET', '/chat/sessions/' + sid, '#chat-messages');
+    }
+    
+    function askSuggestion(text) {
+        document.getElementById('chat-input').value = text;
+        document.getElementById('chat-form').requestSubmit();
+    }
+
+    function toggleMobileChats() {
+        document.getElementById('chat-sidebar-mobile').classList.toggle('open');
+        document.getElementById('chat-backdrop').classList.toggle('active');
+    }
+    function closeMobileChats() {
+        document.getElementById('chat-sidebar-mobile').classList.remove('open');
+        document.getElementById('chat-backdrop').classList.remove('active');
+    }
+    
+    // Auto-resize textarea
+    document.getElementById('chat-input').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+    });
+
+    function toggleSessionMenu(event, menuId) {
+        event.stopPropagation();
+        document.querySelectorAll('[id^="menu-"]').forEach(m => { if (m.id !== menuId) m.classList.add('hidden'); });
+        document.getElementById(menuId).classList.toggle('hidden');
+    }
+
+    async function pinSession(sid) {
+        await fetch('/chat/sessions/' + sid + '/pin', { method: 'POST' });
+        htmx.ajax('GET', '/chat/sessions-sidebar', '#sessions-list');
+        htmx.ajax('GET', '/chat/sessions-sidebar', '#sessions-list-desktop');
+    }
+
+    async function deleteSession(sid) {
+        if (!confirm('Delete this conversation? This cannot be undone.')) return;
+        await fetch('/chat/sessions/' + sid + '/delete', { method: 'POST' });
+        document.getElementById('chat-messages').innerHTML = '<div class="flex flex-col items-center justify-center h-full text-center pt-20"><div class="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center mb-4"><svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div><h3 class="text-lg font-bold text-fg mb-2">ThredMind Chat</h3><p class="text-fg-dim text-sm max-w-sm">Ask questions about your documents. I\'ll search your knowledge base and use AI to answer.</p></div>';
+        document.getElementById('chat-session-id').value = '';
+        htmx.ajax('GET', '/chat/sessions-sidebar', '#sessions-list');
+        htmx.ajax('GET', '/chat/sessions-sidebar', '#sessions-list-desktop');
+    }
+
+    // Close menus when clicking elsewhere
+    document.addEventListener('click', function() {
+        document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
+    });
+</script>
+{% endblock %}
