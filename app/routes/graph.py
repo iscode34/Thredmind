@@ -24,10 +24,15 @@ async def graph_page(request: Request):
     from app.services.knowledge_graph import get_graph_stats
     stats = get_graph_stats(user["id"])
 
-    return templates.TemplateResponse("graph.html", {
-        "request": request, "user": user, "theme": theme,
-        "sidebar_active": "graph", "categories": categories_list, "stats": stats
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="graph.html",
+        context={
+            "user": user, "theme": theme,
+            "sidebar_active": "graph", "categories": categories_list, "stats": stats
+        }
+    )
+
 
 
 @router.get("/graph/data")

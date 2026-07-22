@@ -125,9 +125,9 @@ async def dashboard(request: Request):
     categories = [{"name": r["name"], "color": r["color"], "count": r["count"]} for r in cat_rows]
     
     return templates.TemplateResponse(
-        "index.html", 
-        {
-            "request": request, 
+        request=request,
+        name="index.html", 
+        context={
             "user": user, 
             "theme": theme, 
             "sidebar_active": "dashboard",
@@ -145,3 +145,4 @@ async def dashboard(request: Request):
             "categories": categories,
         }
     )
+

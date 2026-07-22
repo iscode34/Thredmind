@@ -39,10 +39,15 @@ async def chat_page(request: Request):
             sd["updated_at"] = sd["updated_at"].strftime("%b %d")
         sessions_list.append(sd)
 
-    return templates.TemplateResponse("chat.html", {
-        "request": request, "user": user, "theme": theme,
-        "sidebar_active": "chat", "sessions": sessions_list
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="chat.html",
+        context={
+            "user": user, "theme": theme,
+            "sidebar_active": "chat", "sessions": sessions_list
+        }
+    )
+
 
 
 # ============================================================

@@ -21,7 +21,7 @@ async def login_page(request: Request):
         return RedirectResponse("/app", status_code=302)
     from app.templating import templates
     theme = theme_from_request(request)
-    return templates.TemplateResponse("login.html", {"request": request, "theme": theme})
+    return templates.TemplateResponse(request=request, name="login.html", context={"theme": theme})
 
 
 @router.post("/login")
@@ -51,7 +51,8 @@ async def signup_page(request: Request):
         return RedirectResponse("/app", status_code=302)
     from app.templating import templates
     theme = theme_from_request(request)
-    return templates.TemplateResponse("signup.html", {"request": request, "theme": theme})
+    return templates.TemplateResponse(request=request, name="signup.html", context={"theme": theme})
+
 
 
 @router.post("/signup")

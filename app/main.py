@@ -72,7 +72,7 @@ async def root(request: Request):
         return RedirectResponse("/app")
 
     theme = theme_from_request(request)
-    return templates.TemplateResponse("landing.html", {"request": request, "theme": theme})
+    return templates.TemplateResponse(request=request, name="landing.html", context={"theme": theme})
 
 
 @app.get("/home")
@@ -82,7 +82,8 @@ async def home(request: Request):
     from app.templating import templates
 
     theme = theme_from_request(request)
-    return templates.TemplateResponse("landing.html", {"request": request, "theme": theme})
+    return templates.TemplateResponse(request=request, name="landing.html", context={"theme": theme})
+
 
 
 @app.get("/study")
@@ -182,9 +183,11 @@ async def study_library(request: Request):
     categories_list = [dict(c) for c in categories]
 
     return templates.TemplateResponse(
-        "study_library.html",
-        {"request": request, "user": user, "theme": theme,
+        request=request,
+        name="study_library.html",
+        context={"user": user, "theme": theme,
          "documents": documents, "categories": categories_list,
          "stats": stats, "due_docs": due_docs,
          "sidebar_active": "study"}
     )
+

@@ -23,7 +23,7 @@ async def upload_page(request: Request):
         return RedirectResponse("/auth/login", status_code=302)
     from app.templating import templates
     theme = theme_from_request(request)
-    return templates.TemplateResponse("upload.html", {"request": request, "user": user, "theme": theme, "sidebar_active": "upload"})
+    return templates.TemplateResponse(request=request, name="upload.html", context={"user": user, "theme": theme, "sidebar_active": "upload"})
 
 
 @router.post("/upload", response_class=HTMLResponse)
@@ -135,9 +135,9 @@ async def list_documents(request: Request, tab: str = "all", category: str = "")
     categories_list = [dict(cat) for cat in categories]
 
     return templates.TemplateResponse(
-        "documents.html",
-        {
-            "request": request, 
+        request=request,
+        name="documents.html",
+        context={
             "user": user, 
             "theme": theme, 
             "documents": documents, 
@@ -273,8 +273,9 @@ async def view_document(request: Request, doc_id: str):
     categories_list = [dict(cat) for cat in categories]
 
     return templates.TemplateResponse(
-        "document_detail.html",
-        {"request": request, "user": user, "theme": theme, "doc": doc, "reading_time": reading_time, "categories": categories_list, "sidebar_active": "documents"},
+        request=request,
+        name="document_detail.html",
+        context={"user": user, "theme": theme, "doc": doc, "reading_time": reading_time, "categories": categories_list, "sidebar_active": "documents"},
     )
 
 
@@ -900,8 +901,9 @@ async def study_page(request: Request, doc_id: str):
     doc = dict(row)
     reading_time = max(1, (doc.get("word_count", 0) or 0) // 200)
     return templates.TemplateResponse(
-        "study.html",
-        {"request": request, "user": user, "theme": theme, "doc": doc, "reading_time": reading_time, "sidebar_active": "study"},
+        request=request,
+        name="study.html",
+        context={"user": user, "theme": theme, "doc": doc, "reading_time": reading_time, "sidebar_active": "study"},
     )
 
 
