@@ -32,8 +32,9 @@ def get_current_user(request: Request):
             return None
         user = execute_one("SELECT id, email, created_at FROM users WHERE id = %s", (user_id,))
         return dict(user) if user else None
-    except JWTError:
+    except Exception:
         return None
+
 
 
 def require_auth(request: Request):

@@ -28,11 +28,26 @@ async def lifespan(app: FastAPI):
     yield
 
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+
 app = FastAPI(title="Thredmind", version="0.1.0", lifespan=lifespan)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global exception on {request.url.path}: {exc}", exc_info=True)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(
+        content=f"<html><head><title>Application Error</title></head><body style='font-family:sans-serif;padding:2rem;'><h2>Application Error</h2><p>{str(exc)}</p></body></html>",
+        status_code=500,
+    )
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+
 app.include_router(dashboard.router, tags=["Dashboard"])
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(chat.router, tags=["Chat"])
