@@ -10,7 +10,6 @@ import os
 os.environ["FASTEMBED_CACHE_DIR"] = "/tmp/fastembed_cache"
 os.environ["HF_HOME"] = "/tmp/hf_home"
 
-from fastembed import TextEmbedding
 from app.services.db_client import execute
 
 logger = logging.getLogger(__name__)
@@ -19,14 +18,16 @@ EMBEDDING_DIM = 384
 _MODEL = None
 
 
-def _get_model() -> TextEmbedding:
+def _get_model():
     """Lazy-load the embedding model (downloaded on first use, cached thereafter)."""
     global _MODEL
     if _MODEL is None:
         logger.info("Loading local embedding model (BAAI/bge-small-en-v1.5)...")
+        from fastembed import TextEmbedding
         _MODEL = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", cache_dir="/tmp/fastembed_cache")
         logger.info("Embedding model ready (384-dim, ONNX Runtime)")
     return _MODEL
+
 
 
 

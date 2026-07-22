@@ -1,9 +1,6 @@
 import io
 from pathlib import Path
 
-import PyPDF2
-from docx import Document as DocxDocument
-from pptx import Presentation
 
 
 def extract_text_from_file(file_bytes: bytes, filename: str) -> tuple[str, str]:
@@ -21,6 +18,7 @@ def extract_text_from_file(file_bytes: bytes, filename: str) -> tuple[str, str]:
 
 
 def _extract_pdf(file_bytes: bytes) -> str:
+    import PyPDF2
     reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
     text_parts = []
     for page in reader.pages:
@@ -31,12 +29,15 @@ def _extract_pdf(file_bytes: bytes) -> str:
 
 
 def _extract_docx(file_bytes: bytes) -> str:
+    from docx import Document as DocxDocument
     doc = DocxDocument(io.BytesIO(file_bytes))
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
 
 def _extract_pptx(file_bytes: bytes) -> str:
+    from pptx import Presentation
     prs = Presentation(io.BytesIO(file_bytes))
+
     text_parts = []
     for slide in prs.slides:
         slide_text = []

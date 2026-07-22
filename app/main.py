@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Ensure project root is in python module path for Vercel
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -6,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.routes import auth, chat, dashboard, documents, graph
 from app.services.db_client import init_db
+
 
 
 import logging
